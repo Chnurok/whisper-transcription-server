@@ -1,29 +1,23 @@
 # Whisper Transcription Server
 
+![Preview](assets/preview.svg)
+
 A tiny self-hosted HTTP server that accepts audio and returns a **Deepgram-compatible** transcription response backed by the **Groq Whisper API**.
 
-This project is meant for the practical case where an existing tool already expects a Deepgram-style endpoint, but you want a lightweight local bridge instead of rewriting that integration.
+## Why use it
 
-## What it does
+If an existing tool already speaks the Deepgram API shape, this project lets you keep that integration and swap in Groq Whisper behind a tiny local bridge.
 
-- accepts uploaded audio on `POST /v1/listen`
-- sends transcription requests to the Groq Whisper API
-- returns a compact Deepgram-like JSON response
-- includes detected language metadata
-- runs as a single small Python process
-- binds to `127.0.0.1` by default for private/local use
+## Highlights
 
-## Why this exists
+- 🎤 accepts uploaded audio and returns plain-text transcription
+- 🔌 compatible endpoint: `POST /v1/listen`
+- 🚀 uses `whisper-large-v3-turbo` by default
+- 🌍 returns detected language metadata
+- 🪶 tiny deployment footprint
+- 🏠 binds to `127.0.0.1` by default for local/private use
 
-A lot of automations and voice tools are already wired to speak one API format. This server acts as a compatibility layer so those tools can keep working while using Groq for speech-to-text.
-
-## Requirements
-
-- Python 3.10+
-- `curl`
-- a Groq API key
-
-## Install
+## Quick start
 
 ```bash
 git clone https://github.com/Chnurok/whisper-transcription-server.git
@@ -31,42 +25,33 @@ cd whisper-transcription-server
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-## Configuration
-
-```bash
 export GROQ_API_KEY=your_groq_api_key
-export GROQ_MODEL=whisper-large-v3-turbo
-export WHISPER_PORT=9876
-```
-
-Groq keys: <https://console.groq.com/keys>
-
-## Run
-
-```bash
 python3 whisper-server.py
 ```
 
-Default address:
+Server address:
 
 ```text
 http://127.0.0.1:9876
 ```
 
-## API
-
-### `POST /v1/listen`
-
-Example:
+## Configuration
 
 ```bash
-curl -X POST http://127.0.0.1:9876/v1/listen \
-  -F "audio=@voice.ogg"
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=whisper-large-v3-turbo
+WHISPER_PORT=9876
 ```
 
-Example response:
+Get an API key here: <https://console.groq.com/keys>
+
+## Example request
+
+```bash
+curl -X POST http://127.0.0.1:9876/v1/listen   -F "audio=@voice.ogg"
+```
+
+## Example response
 
 ```json
 {
@@ -90,6 +75,19 @@ Example response:
 }
 ```
 
+## OpenClaw integration
+
+Use a Deepgram-style transcription endpoint in your OpenClaw config:
+
+```json
+{
+  "transcription": {
+    "provider": "deepgram",
+    "endpoint": "http://127.0.0.1:9876"
+  }
+}
+```
+
 ## Good fit for
 
 - local assistant tooling
@@ -97,11 +95,11 @@ Example response:
 - automation pipelines that already expect a Deepgram-like response
 - quick internal deployments on a VPS or home server
 
-## Notes
+## Limitations
 
-- This is intentionally small and easy to inspect.
-- The server currently handles audio by writing it to a temporary file and sending it through `curl`.
-- It is best suited to personal tools, internal services, and lightweight deployments.
+- uses `curl` under the hood instead of a dedicated Python SDK
+- best suited to personal tools and internal deployments
+- not intended as a hardened public internet service without reverse proxy + auth
 
 ## License
 
