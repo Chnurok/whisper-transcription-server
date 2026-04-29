@@ -1,61 +1,107 @@
 # Whisper Transcription Server
 
-HTTP сервер для транскрипции аудио через Groq Whisper API (Deepgram-compatible endpoint).
+A tiny self-hosted HTTP server that accepts audio and returns a **Deepgram-compatible** transcription response backed by the **Groq Whisper API**.
 
-## Возможности
+This is useful when you want a lightweight local bridge for tools that already speak the Deepgram format, but you want to run transcription through Groq instead.
 
-- 🎤 Транскрибирует голосовые сообщения в текст
-- 🔌 Deepgram-compatible API (endpoint `/v1/listen`)
-- 🚀 Groq Whisper-large-v3-turbo (быстро и точно)
-- 🌍 Авто-определение языка
-- 💾 Не хранит аудио-файлы
+## Features
 
-## Установка
+- 🎤 Accepts uploaded audio and returns plain text transcription
+- 🔌 Deepgram-like endpoint: `POST /v1/listen`
+- 🚀 Uses `whisper-large-v3-turbo` by default
+- 🌍 Returns detected language metadata
+- 🪶 Very small deployment footprint
+- 🏠 Binds to `127.0.0.1` by default for local/private use
+
+## Requirements
+
+- Python 3.10+
+- `curl` available on the host
+- A Groq API key
+
+## Installation
 
 ```bash
-pip install groq
+pip install -r requirements.txt
 ```
 
-## Конфигурация
+## Configuration
 
-Переменные окружения:
+Environment variables:
+
 ```bash
 GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=whisper-large-v3-turbo
+WHISPER_PORT=9876
 ```
 
-Получить ключ: https://console.groq.com/keys
+Get an API key here: <https://console.groq.com/keys>
 
-## Запуск
+## Run locally
 
 ```bash
 python3 whisper-server.py
 ```
 
-Сервер слушает на `http://127.0.0.1:9876`
+Server address:
+
+```text
+http://127.0.0.1:9876
+```
 
 ## API
 
-### POST /v1/listen
+### POST `/v1/listen`
+
+Example request:
 
 ```bash
 curl -X POST http://127.0.0.1:9876/v1/listen \
   -F "audio=@voice.ogg"
 ```
 
-Ответ (JSON):
+Example response:
+
 ```json
 {
   "results": {
-    "channels": [{
-      "alternatives": [{
-        "transcript": "Привет, как дела?"
-      }]
-    }]
+    "channels": [
+      {
+        "alternatives": [
+          {
+            "transcript": "Привет, как дела?",
+            "confidence": 0.99,
+            "words": []
+          }
+        ]
+      }
+    ]
+  },
+  "metadata": {
+    "model": "whisper-large-v3-turbo",
+    "detected_language": "ru"
   }
 }
 ```
 
-## Systemd Service
+### Notes about compatibility
+
+The response shape is intentionally close to Deepgram for easier drop-in integration, but this project is a lightweight adapter rather than a full Deepgram implementation.
+
+## OpenClaw integration
+
+Use a Deepgram-style transcription endpoint in your OpenClaw config:
+
+```json
+{
+  "transcription": {
+    "provider": "deepgram",
+    "endpoint": "http://127.0.0.1:9876"
+  }
+}
+```
+
+## Systemd example
 
 ```ini
 [Unit]
@@ -67,6 +113,8 @@ Type=simple
 User=clawd
 WorkingDirectory=/home/clawd/whisper-server
 Environment="GROQ_API_KEY=your_key"
+Environment="GROQ_MODEL=whisper-large-v3-turbo"
+Environment="WHISPER_PORT=9876"
 ExecStart=/usr/bin/python3 /home/clawd/whisper-server/whisper-server.py
 Restart=always
 
@@ -74,24 +122,12 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
-## Интеграция с OpenClaw
+## Limitations
 
-В OpenClaw config установите:
-```json
-{
-  "transcription": {
-    "provider": "deepgram",
-    "endpoint": "http://127.0.0.1:9876"
-  }
-}
-```
+- Expects audio to be posted as request body/form data in a simple local workflow
+- Uses `curl` under the hood instead of a dedicated Python SDK flow
+- Not intended as a hardened public internet service without a reverse proxy / auth layer
 
-## Модель
-
-- **whisper-large-v3-turbo** — баланс скорости и точности
-- Поддержка 90+ языков
-- Автоопределение языка
-
-## Лицензия
+## License
 
 MIT
